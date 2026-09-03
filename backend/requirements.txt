@@ -1,0 +1,53 @@
+# ─────────────────────────────
+# API / Backend
+# ─────────────────────────────
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic
+pydantic-settings
+
+# ─────────────────────────────
+# Computer Vision / Image Processing
+# ─────────────────────────────
+opencv-python
+Pillow
+numpy
+scipy
+scikit-image
+
+# ─────────────────────────────
+# Machine Learning / Deep Learning
+# ─────────────────────────────
+torch
+torchvision
+timm
+scikit-learn
+
+# ─────────────────────────────
+# OCR
+# ─────────────────────────────
+pytesseract
+
+# ─────────────────────────────
+# MRZ / Passport Processing
+# ─────────────────────────────
+passporteye
+
+# ─────────────────────────────
+# Face Detection / Verification
+# ─────────────────────────────
+insightface
+onnxruntime
+
+# ─────────────────────────────
+# Data / Utilities
+# ─────────────────────────────
+pandas
+python-dotenv
+
+# ─────────────────────────────
+# Testing
+# ─────────────────────────────
+pytest
+httpx
