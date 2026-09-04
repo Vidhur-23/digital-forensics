@@ -8,12 +8,17 @@ Orchestrates the flow without embedding any OCR/CV details in the API layer:
       -> detect_mrz            (MRZ region + raw fields)
       -> classify_document     (document type)
       -> FieldExtractor        (visual + MRZ field values)
-      -> ScreeningResponse     (structured JSON)
+      -> ScreeningResponse     (structured Phase 1 JSON)
+      -> RulesEngine.evaluate  (Phase 2 deterministic rule findings)
 
 The OCR engine is injected, so tests can supply a deterministic stub and a
-later phase can swap the backend.
+later phase can swap the backend. The Rules Engine (Phase 2) runs *after* the
+Phase 1 structured result is assembled and consumes that result; it never
+touches OCR/CV.
 """
 from __future__ import annotations
+
+from typing import Optional
 
 from app.api.schemas.document import (
     FieldValue,
@@ -29,11 +34,15 @@ from app.document.preprocessing import load_document
 from app.ocr.engine import OCREngine
 from app.ocr.extractor import get_extractor
 from app.ocr.mrz import detect_mrz
+from app.rules.engine import RulesEngine
 
 
 class ScreeningPipeline:
-    def __init__(self, ocr_engine: OCREngine):
+    def __init__(self, ocr_engine: OCREngine, rules_engine: Optional[RulesEngine] = None):
         self._ocr = ocr_engine
+        # Phase 2 orchestrator. Deterministic and stateless, so a default
+        # instance is fine; still injectable for testing/extension.
+        self._rules = rules_engine or RulesEngine()
 
     def screen(self, data: bytes) -> ScreeningResponse:
         # 1. Decode + preprocess (raises ImageDecodeError on bad input).
@@ -80,7 +89,7 @@ class ScreeningPipeline:
             ],
         )
 
-        return ScreeningResponse(
+        response = ScreeningResponse(
             document_type=classification.document_type,
             document_type_confidence=classification.confidence,
             image=ImageInfo(width=doc.width, height=doc.height),
@@ -88,3 +97,8 @@ class ScreeningPipeline:
             mrz=mrz_out,
             ocr=ocr_out,
         )
+
+        # 7. Phase 2: deterministic Rules Engine over the structured result.
+        response.rules = self._rules.evaluate(response)
+
+        return response

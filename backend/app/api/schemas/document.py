@@ -12,6 +12,7 @@ from typing import Dict, List, Optional
 from pydantic import BaseModel, Field
 
 from app.ocr.schemas import BBox
+from app.rules.schemas import RuleResults
 
 
 class ImageInfo(BaseModel):
@@ -66,3 +67,6 @@ class ScreeningResponse(BaseModel):
     fields: Dict[str, FieldValue]
     mrz: MRZInfo
     ocr: OCRInfo
+    # Phase 2: deterministic rule findings. Optional so a bare Phase 1 result
+    # (no rules run yet) is still a valid response object.
+    rules: Optional[RuleResults] = None
