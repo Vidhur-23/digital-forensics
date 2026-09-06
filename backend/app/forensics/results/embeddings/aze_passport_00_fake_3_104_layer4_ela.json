@@ -1,0 +1,10 @@
+{
+    "document_id": "aze_passport_00_fake_3_104",
+    "mean_error": 0.6632,
+    "std_error": 0.9013,
+    "max_error": 15,
+    "p95_error": 2.0,
+    "high_error_pct": 0.0055,
+    "threshold_min": 1.311,
+    "threshold_max": 1.4218
+}

@@ -15,6 +15,7 @@ Pillow
 numpy
 scipy
 scikit-image
+matplotlib  # required by the forensic layer's signal modules (import-time)
 
 # ─────────────────────────────
 # Machine Learning / Deep Learning

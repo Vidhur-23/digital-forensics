@@ -1,0 +1,18 @@
+{
+    "layer_name": "Layer 4: Error Level Analysis (ELA)",
+    "genuine_samples_count": 100,
+    "fake_samples_count": 126,
+    "genuine_mean_error": 1.3664,
+    "genuine_std_error": 0.0138,
+    "genuine_min_error": 1.3353,
+    "genuine_max_error": 1.3964,
+    "fake_mean_error": 0.646,
+    "fake_std_error": 0.0178,
+    "fake_min_error": 0.5778,
+    "fake_max_error": 0.6777,
+    "calibrated_threshold_min": 1.311,
+    "calibrated_threshold_max": 1.4218,
+    "separation": 0.7204,
+    "false_positive_rate": 0.0,
+    "false_negative_rate": 0.0
+}

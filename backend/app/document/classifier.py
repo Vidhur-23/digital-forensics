@@ -1,9 +1,8 @@
 """Document type identification.
 
-Phase 1 targets the passport. The classifier is deliberately simple and signal
-based (MRZ presence + keywords) but returns a structured result so more document
-types (driving licence, visa, national ID) can be added later without changing
-callers.
+Phase 1 targets the passport, the only supported document type. The classifier
+is deliberately simple and signal based (MRZ presence + keywords) but returns a
+structured result so callers stay decoupled from the detection heuristics.
 """
 from __future__ import annotations
 

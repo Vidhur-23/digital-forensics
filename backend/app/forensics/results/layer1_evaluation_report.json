@@ -1,0 +1,54 @@
+{
+  "evaluation_timestamp_utc": "1788619917.5235083",
+  "algorithm_version": "2.1.0",
+  "layer_name": "Layer 1: Background Intensity, Micro-Texture & Structural Consistency",
+  "dataset_split": {
+    "calibration_base_count": 70,
+    "validation_base_count": 15,
+    "test_base_count": 15
+  },
+  "validation_set": {
+    "count": 15,
+    "passed": 15,
+    "accuracy": 1.0
+  },
+  "held_out_test_set": {
+    "sample_counts": {
+      "genuine": 15,
+      "fake": 27,
+      "total": 42
+    },
+    "confusion_matrix": {
+      "true_negative": 15,
+      "false_positive": 0,
+      "false_negative": 0,
+      "true_positive": 27
+    },
+    "metrics": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall_sensitivity": 1.0,
+      "specificity": 1.0,
+      "f1_score": 1.0,
+      "false_positive_rate": 0.0,
+      "false_negative_rate": 0.0
+    },
+    "methodology_note": "Performance on the current held-out evaluation dataset (synthetic template-based). Real-world physical scans with diverse camera sensors, lighting, and wear will exhibit natural genuine variance and lower separation margins."
+  },
+  "full_attack_corpus": {
+    "total_fakes": 126,
+    "detected": 126,
+    "missed": 0,
+    "detection_rate": 1.0
+  },
+  "controlled_experiment": {
+    "description": "Synthetic localized photo-splice with 100% untouched background",
+    "donor_base_id": "13",
+    "source_base_id": "15",
+    "layer1_verdict": "CONSISTENT_BACKGROUND",
+    "layer1_passed": true,
+    "layer1_score": 0.0,
+    "layer1_distance": 0.0,
+    "interpretation": "Layer 1 passed the untouched background, correctly functioning as a background-consistency detector. Upstream portrait alterations are designated to Layer 2 (Photo Boundary) and Layer 4 (ELA)."
+  }
+}

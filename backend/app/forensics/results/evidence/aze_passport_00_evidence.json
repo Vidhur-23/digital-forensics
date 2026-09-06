@@ -1,0 +1,115 @@
+{
+  "document_id": "aze_passport_00",
+  "image_source": "/Users/karunya/Desktop/forensic_layer/dataset/reals/aze_passport_00.jpg",
+  "timestamp_utc": "2026-09-05T14:57:04.680016+00:00",
+  "engine_version": "0.1.0",
+  "layers_requested": 4,
+  "layers_completed": 4,
+  "layers_failed": 0,
+  "all_passed": true,
+  "findings": [
+    {
+      "layer_name": "Layer 1: Background Intensity, Micro-Texture & Structural Consistency",
+      "finding_type": "normal",
+      "score": 0.0,
+      "confidence": 1.0,
+      "severity": "low",
+      "passed": true,
+      "raw_metric": {
+        "status": "ok",
+        "verdict": "CONSISTENT_BACKGROUND",
+        "distance": 0.0,
+        "threshold": 0.45,
+        "d_intensity": 0.0,
+        "d_lbp": 0.0,
+        "d_grad": 0.0,
+        "threshold_intensity": 0.45,
+        "threshold_lbp": 0.1,
+        "threshold_grad": 1.5
+      },
+      "explanation": "Background security patterns are consistent with genuine baseline (Intensity W1=0.0000 <= 0.4500, LBP Chi2=0.0000 <= 0.1000).",
+      "_engine_meta": {
+        "elapsed_ms": 45.18,
+        "status": "ok"
+      }
+    },
+    {
+      "layer_name": "Layer 2: Photo Boundary Analysis",
+      "finding_type": "photo_boundary_anomaly",
+      "score": 0.0,
+      "confidence": 1.0,
+      "severity": "low",
+      "passed": true,
+      "raw_metric": {
+        "long_straight_line_count": 0,
+        "total_lines_detected": 3,
+        "threshold": 7.5,
+        "region": {
+          "bbox": [
+            160,
+            294,
+            413,
+            589
+          ],
+          "description": "Portrait photo boundary and surrounding seam area"
+        }
+      },
+      "explanation": "Photo boundary shows 0 long straight edge(s), within the normal range for genuine documents (threshold 7.5).",
+      "_engine_meta": {
+        "elapsed_ms": 37.33,
+        "status": "ok"
+      }
+    },
+    {
+      "layer_name": "Layer 3: Color Consistency Analysis",
+      "finding_type": "color_consistency_anomaly",
+      "score": 0.5231,
+      "confidence": 0.2153,
+      "severity": "medium",
+      "passed": true,
+      "raw_metric": {
+        "mahalanobis_distance": 2.5696,
+        "threshold": 3.2748,
+        "color_signature": [
+          214.4674,
+          120.1529,
+          133.3932,
+          48.2761,
+          6.5588,
+          6.8599
+        ]
+      },
+      "explanation": "Color signature Mahalanobis distance is 2.57 (threshold 3.27) \u2014 consistent with genuine baseline.",
+      "_engine_meta": {
+        "elapsed_ms": 116.27,
+        "status": "ok"
+      }
+    },
+    {
+      "layer_name": "Layer 4: Error Level Analysis (ELA)",
+      "finding_type": "compression_artifact_anomaly",
+      "score": 0.1697,
+      "confidence": 0.413,
+      "severity": "low",
+      "passed": true,
+      "raw_metric": {
+        "mean_error": 1.3805,
+        "std_error": 1.3322,
+        "max_error": 31,
+        "p95_error": 4.0,
+        "high_error_pct": 0.0855,
+        "threshold_min": 1.311,
+        "threshold_max": 1.4218
+      },
+      "explanation": "Error Level Analysis error (1.381) matches genuine document compression profile (band [1.31 - 1.42]).",
+      "_engine_meta": {
+        "elapsed_ms": 84.94,
+        "status": "ok"
+      }
+    }
+  ],
+  "flagged_findings": [],
+  "anomaly_summary": [],
+  "errors": [],
+  "elapsed_seconds": 0.2837
+}

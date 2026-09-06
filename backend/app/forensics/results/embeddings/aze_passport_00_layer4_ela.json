@@ -1,0 +1,11 @@
+{
+    "document_id": "aze_passport_00",
+    "mean_error": 1.3805,
+    "std_error": 1.3322,
+    "max_error": 31,
+    "p95_error": 4.0,
+    "high_error_pct": 0.0855,
+    "threshold_min": 1.311,
+    "threshold_max": 1.4218,
+    "photo_doc_ratio": 0.6165
+}

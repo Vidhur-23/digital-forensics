@@ -5,9 +5,8 @@ The OCR engine answers *"what text is visible?"*. The extractor answers
 date_of_birth, document_number, etc., each carrying its source bounding box and
 confidence so Phase 2 (rules) and Phase 3 (forensics) can consume them.
 
-Extensibility: :class:`FieldExtractor` is the interface; register a new
-subclass (driving licence, visa, national ID, ...) and select it by document
-type in the pipeline. Only the passport extractor is implemented in Phase 1.
+:class:`FieldExtractor` is the interface; the passport extractor is the only
+implementation and is selected by document type in the pipeline.
 """
 from __future__ import annotations
 

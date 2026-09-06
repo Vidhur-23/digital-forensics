@@ -8,6 +8,7 @@ from __future__ import annotations
 from functools import lru_cache
 
 from app.config import settings
+from app.forensics.engine import ForensicLayerService
 from app.ocr.engine import TesseractOCREngine
 from app.pipeline.pipeline import ScreeningPipeline
 
@@ -15,4 +16,7 @@ from app.pipeline.pipeline import ScreeningPipeline
 @lru_cache(maxsize=1)
 def get_pipeline() -> ScreeningPipeline:
     engine = TesseractOCREngine(tesseract_cmd=settings.tesseract_cmd)
-    return ScreeningPipeline(ocr_engine=engine)
+    # One forensic service per process: the adapter imports the (heavy) CV
+    # signal modules once on first use and reuses them across requests.
+    forensics = ForensicLayerService()
+    return ScreeningPipeline(ocr_engine=engine, forensic_service=forensics)

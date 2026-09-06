@@ -1,0 +1,17 @@
+{
+    "layer_name": "Layer 2: Photo Boundary Analysis",
+    "genuine_samples_count": 91,
+    "fake_samples_count": 103,
+    "genuine_count_mean": 0.17582417582417584,
+    "genuine_count_std": 0.6218265648701146,
+    "genuine_count_max": 5,
+    "fake_count_mean": 0.1650485436893204,
+    "fake_count_std": 0.3965160748866433,
+    "fake_count_max": 2,
+    "calibrated_threshold": 7.5,
+    "separation": -0.01077563213485544,
+    "genuine_zero_pct": 87.91208791208791,
+    "fake_zero_pct": 84.46601941747572,
+    "false_positive_rate": 0.0,
+    "false_negative_rate": 100.0
+}

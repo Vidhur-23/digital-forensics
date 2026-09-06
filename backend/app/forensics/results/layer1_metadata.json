@@ -1,0 +1,68 @@
+{
+    "layer_name": "Layer 1: Background Intensity, Micro-Texture & Structural Consistency",
+    "algorithm_version": "2.1.0",
+    "metric_version": "2.1.0",
+    "calibration_type": "genuine_only",
+    "fake_data_used_for_calibration": false,
+    "artifacts_locked": true,
+    "patch_coords": [
+        0.05,
+        0.01,
+        0.85,
+        0.045
+    ],
+    "sample_counts": {
+        "genuine_calibration_count": 70,
+        "genuine_validation_count": 15,
+        "final_test_count": 15
+    },
+    "metrics": {
+        "intensity_distribution": {
+            "metric": "weighted_wasserstein",
+            "threshold": 0.45,
+            "threshold_method": "genuine_only_robust_tolerance",
+            "threshold_source": "calibration_genuine_only",
+            "empirical_limit": 0.0,
+            "guard_band_floor": 0.45,
+            "genuine_loo_mean": 0.0,
+            "genuine_loo_max": 0.0
+        },
+        "spatial_texture": {
+            "metric": "lbp_chi_square",
+            "threshold": 0.1,
+            "threshold_method": "genuine_only_robust_tolerance",
+            "threshold_source": "calibration_genuine_only",
+            "empirical_limit": 0.0,
+            "guard_band_floor": 0.1,
+            "genuine_loo_mean": 0.0,
+            "genuine_loo_max": 0.0
+        },
+        "structural_consistency": {
+            "metric": "sobel_gradient_magnitude_diff",
+            "primary_feature": "gradient_mean",
+            "diagnostic_features": [
+                "gradient_std",
+                "gradient_p95",
+                "edge_density"
+            ],
+            "threshold": 1.5,
+            "threshold_method": "genuine_only_robust_tolerance",
+            "threshold_source": "calibration_genuine_only",
+            "reference_mean": 18.416,
+            "reference_std": 0.0,
+            "empirical_limit": 0.0,
+            "guard_band_floor": 1.5
+        }
+    },
+    "validation_results": {
+        "sample_count": 15,
+        "pass_rate": 1.0,
+        "max_intensity_dist": 0.0,
+        "max_lbp_dist": 0.0,
+        "max_grad_diff": 0.0
+    },
+    "dataset_characteristics": {
+        "template_controlled": true,
+        "zero_variance_handled": true
+    }
+}

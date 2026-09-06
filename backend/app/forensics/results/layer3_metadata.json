@@ -1,0 +1,31 @@
+{
+    "layer_name": "Layer 3: Lighting Consistency Analysis",
+    "genuine_samples_count": 91,
+    "fake_samples_count": 103,
+    "brightness_metric": {
+        "genuine_mean": 88.6524,
+        "genuine_std": 27.7273,
+        "genuine_max": 149.891,
+        "fake_mean": 89.5709,
+        "fake_std": 27.9941,
+        "fake_max": 148.8913,
+        "calibrated_threshold": 224.8365,
+        "separation": 0.9185,
+        "false_positive_rate": 0.0,
+        "false_negative_rate": 100.0
+    },
+    "color_metric": {
+        "genuine_mean": 8.1715,
+        "genuine_std": 0.5297,
+        "genuine_max": 9.4013,
+        "fake_mean": 8.1041,
+        "fake_std": 0.5192,
+        "fake_max": 9.189,
+        "calibrated_threshold": 14.102,
+        "separation": -0.0674,
+        "false_positive_rate": 0.0,
+        "false_negative_rate": 100.0
+    },
+    "calibrated_l_threshold": 224.8365,
+    "calibrated_color_threshold": 14.102
+}

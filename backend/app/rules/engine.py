@@ -22,7 +22,7 @@ from __future__ import annotations
 from typing import Callable, Dict, List
 
 from app.api.schemas.document import ScreeningResponse
-from app.rules import common, consistency, dates, driving_license, mrz, passport, trusted_record
+from app.rules import common, consistency, dates, mrz, passport, trusted_record
 from app.rules.schemas import RuleFinding, RuleResults
 
 # A rule group is a callable: ScreeningResponse -> List[RuleFinding].
@@ -38,10 +38,9 @@ _COMMON_GROUPS: List[RuleGroup] = [
     trusted_record.check_trusted_record,
 ]
 
-# Per-type additional groups. Extend for new document types.
+# Per-type additional groups. Passport is the only supported document type.
 _RULE_SETS: Dict[str, List[RuleGroup]] = {
     "passport": [passport.check_passport],
-    "driving_license": [driving_license.check_driving_license],
 }
 
 
