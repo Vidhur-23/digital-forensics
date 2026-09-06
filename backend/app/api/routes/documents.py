@@ -17,20 +17,35 @@ from app.pipeline.pipeline import ScreeningPipeline
 router = APIRouter(tags=["screening"])
 
 
-@router.post("/screen", response_model=ScreeningResponse)
-async def screen_document(
-    document: UploadFile = File(..., description="Document image (passport)"),
-    pipeline: ScreeningPipeline = Depends(get_pipeline),
-) -> ScreeningResponse:
-    """Run the Phase 1 document + OCR pipeline on an uploaded image."""
-    if document.content_type and document.content_type not in settings.allowed_image_types:
+def _validate_content_type(content_type: str | None) -> None:
+    """Reject uploads whose declared content type is not an accepted image."""
+    if content_type and content_type not in settings.allowed_image_types:
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
             detail=(
-                f"Unsupported content type '{document.content_type}'. "
+                f"Unsupported content type '{content_type}'. "
                 f"Allowed: {', '.join(settings.allowed_image_types)}."
             ),
         )
+
+
+@router.post("/screen", response_model=ScreeningResponse)
+async def screen_document(
+    document: UploadFile = File(..., description="Document image (passport)"),
+    reference_face: UploadFile | None = File(
+        None,
+        description="Optional reference/live face image for Phase 4 biometric "
+        "verification against the document photo.",
+    ),
+    pipeline: ScreeningPipeline = Depends(get_pipeline),
+) -> ScreeningResponse:
+    """Run the full screening pipeline (Phases 1-4) on an uploaded image.
+
+    An optional ``reference_face`` image enables Phase 4 biometric verification;
+    without it, biometrics is reported as UNAVAILABLE and Phases 1-3 run as
+    before.
+    """
+    _validate_content_type(document.content_type)
 
     data = await document.read()
     if len(data) > settings.max_upload_bytes:
@@ -39,8 +54,18 @@ async def screen_document(
             detail="Uploaded file is too large.",
         )
 
+    reference_data: bytes | None = None
+    if reference_face is not None:
+        _validate_content_type(reference_face.content_type)
+        reference_data = await reference_face.read()
+        if len(reference_data) > settings.max_upload_bytes:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail="Reference face image is too large.",
+            )
+
     try:
-        return pipeline.screen(data)
+        return pipeline.screen(data, reference_data=reference_data)
     except ImageDecodeError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)

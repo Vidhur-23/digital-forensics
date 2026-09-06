@@ -11,18 +11,22 @@ Orchestrates the flow without embedding any OCR/CV details in the API layer:
       -> ScreeningResponse     (structured Phase 1 JSON)
       -> RulesEngine.evaluate  (Phase 2 deterministic rule findings)
       -> ForensicService       (Phase 3 forensic manipulation evidence)
+      -> BiometricService      (Phase 4 face-verification evidence)
 
 The OCR engine is injected, so tests can supply a deterministic stub and a
 later phase can swap the backend. The Rules Engine (Phase 2) runs *after* the
 Phase 1 structured result is assembled and consumes that result; it never
-touches OCR/CV. The Forensic Service (Phase 3) runs last, on the ORIGINAL
-decoded image — it is evidence-only and never produces a fraud verdict, and a
-forensic failure is isolated so Phase 1 + Phase 2 results are still returned.
+touches OCR/CV. The Forensic Service (Phase 3) runs on the ORIGINAL decoded
+image. The Biometric Service (Phase 4) runs last, comparing the document face
+against a separately supplied reference face image. Every later-phase service
+is evidence-only (never a fraud verdict) and failure-isolated, so an error in
+one does not destroy the earlier phases' results.
 """
 from __future__ import annotations
 
 from typing import Optional
 
+from app.api.schemas.biometric import BiometricResults
 from app.api.schemas.document import (
     FieldValue,
     ImageInfo,
@@ -33,8 +37,9 @@ from app.api.schemas.document import (
     ScreeningResponse,
 )
 from app.api.schemas.evidence import ForensicResults
+from app.biometrics.service import BiometricService, InsightFaceBiometricService
 from app.document.classifier import classify_document
-from app.document.preprocessing import load_document
+from app.document.preprocessing import decode_image, load_document
 from app.forensics.engine import ForensicLayerService, ForensicService
 from app.ocr.engine import OCREngine
 from app.ocr.extractor import get_extractor
@@ -48,6 +53,7 @@ class ScreeningPipeline:
         ocr_engine: OCREngine,
         rules_engine: Optional[RulesEngine] = None,
         forensic_service: Optional[ForensicService] = None,
+        biometric_service: Optional[BiometricService] = None,
     ):
         self._ocr = ocr_engine
         # Phase 2 orchestrator. Deterministic and stateless, so a default
@@ -56,8 +62,13 @@ class ScreeningPipeline:
         # Phase 3 forensic adapter (bridges to the in-backend forensic_layer
         # project). Injectable so tests can stub it or exercise failure paths.
         self._forensics = forensic_service or ForensicLayerService()
+        # Phase 4 biometric service (InsightFace-backed). Injectable so tests
+        # can stub it or exercise failure paths.
+        self._biometrics = biometric_service or InsightFaceBiometricService()
 
-    def screen(self, data: bytes) -> ScreeningResponse:
+    def screen(
+        self, data: bytes, reference_data: Optional[bytes] = None
+    ) -> ScreeningResponse:
         # 1. Decode + preprocess (raises ImageDecodeError on bad input).
         doc = load_document(data)
 
@@ -125,4 +136,31 @@ class ScreeningPipeline:
                 f"Forensic analysis failed: {exc!r}"
             )
 
+        # 9. Phase 4: biometric face verification — document face (from the
+        #    ORIGINAL BGR image) vs. a separately supplied reference face image.
+        #    Failure-isolated and evidence-only. A missing/undecodable reference
+        #    yields an UNAVAILABLE biometric result, never a MISMATCH, and never
+        #    affects Phases 1-3.
+        response.biometrics = self._run_biometrics(doc.original, reference_data)
+
         return response
+
+    def _run_biometrics(
+        self, document_image, reference_data: Optional[bytes]
+    ) -> BiometricResults:
+        reference_image = None
+        if reference_data:
+            try:
+                reference_image = decode_image(reference_data)  # BGR, same as doc
+            except Exception as exc:
+                return BiometricResults.unavailable(
+                    f"Reference image could not be decoded: {exc}",
+                    message="The supplied reference face image is not a readable image.",
+                )
+        try:
+            return self._biometrics.verify(document_image, reference_image)
+        except Exception as exc:  # last-resort guard around the service
+            return BiometricResults.unavailable(
+                f"Biometric analysis failed: {exc!r}",
+                message="Biometric analysis could not be completed.",
+            )

@@ -41,7 +41,11 @@ from app.api.schemas.evidence import (
     ForensicStatus,
     ForensicSummary,
 )
-from app.config import settings
+
+# The forensic layer is vendored into this package, so its root is simply this
+# module's own directory (it holds ``pipeline/``, ``signals/``, ``results/`` …).
+# No configuration/indirection is needed to locate it.
+FORENSICS_DIR = Path(__file__).resolve().parent
 
 
 class ForensicService(ABC):
@@ -64,7 +68,9 @@ class ForensicLayerService(ForensicService):
     """Adapter over ``forensic_layer.pipeline.forensics_engine.run_forensics``."""
 
     def __init__(self, forensic_layer_path: Optional[Path] = None):
-        self._path = Path(forensic_layer_path or settings.forensic_layer_path)
+        # Defaults to this package's own directory; still overridable (tests use
+        # a bogus path to exercise the unavailable-engine path).
+        self._path = Path(forensic_layer_path or FORENSICS_DIR)
         self._run_forensics: Optional[Callable[..., Dict[str, Any]]] = None
         self._import_error: Optional[str] = None
 

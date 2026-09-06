@@ -11,6 +11,7 @@ from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+from app.api.schemas.biometric import BiometricResults
 from app.api.schemas.evidence import ForensicResults
 from app.ocr.schemas import BBox
 from app.rules.schemas import RuleResults
@@ -75,3 +76,6 @@ class ScreeningResponse(BaseModel):
     # when forensics could not run, this still carries an explicit UNAVAILABLE
     # status rather than being dropped.
     forensics: Optional[ForensicResults] = None
+    # Phase 4: biometric face-verification evidence. Optional; UNAVAILABLE when
+    # no reference face image was supplied or the model could not run.
+    biometrics: Optional[BiometricResults] = None

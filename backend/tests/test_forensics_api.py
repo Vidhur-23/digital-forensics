@@ -25,8 +25,7 @@ from app.api.schemas.evidence import (
     ForensicStatus,
     ForensicSummary,
 )
-from app.config import settings
-from app.forensics.engine import ForensicLayerService, ForensicService
+from app.forensics.engine import FORENSICS_DIR, ForensicLayerService, ForensicService
 from app.pipeline.pipeline import ScreeningPipeline
 from tests.conftest import StubOCREngine, make_image_bytes
 
@@ -84,7 +83,7 @@ class _RaisingForensicService(ForensicService):
 
 
 def _sample_image_bytes(kind: str) -> bytes:
-    directory = settings.forensic_layer_path / "dataset" / kind
+    directory = FORENSICS_DIR / "dataset" / kind
     if not directory.exists():
         pytest.skip(f"forensic dataset '{kind}' not available at {directory}")
     images = sorted(directory.glob("*.jpg"))

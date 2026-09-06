@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from app.biometrics.service import InsightFaceBiometricService
 from app.config import settings
 from app.forensics.engine import ForensicLayerService
 from app.ocr.engine import TesseractOCREngine
@@ -19,4 +20,11 @@ def get_pipeline() -> ScreeningPipeline:
     # One forensic service per process: the adapter imports the (heavy) CV
     # signal modules once on first use and reuses them across requests.
     forensics = ForensicLayerService()
-    return ScreeningPipeline(ocr_engine=engine, forensic_service=forensics)
+    # One biometric service per process: the InsightFace model is loaded lazily
+    # on first use (when a reference image is supplied) and reused thereafter.
+    biometrics = InsightFaceBiometricService()
+    return ScreeningPipeline(
+        ocr_engine=engine,
+        forensic_service=forensics,
+        biometric_service=biometrics,
+    )
