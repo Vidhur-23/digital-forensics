@@ -41,6 +41,7 @@ from app.biometrics.service import BiometricService, InsightFaceBiometricService
 from app.document.classifier import classify_document
 from app.document.preprocessing import decode_image, load_document
 from app.forensics.engine import ForensicLayerService, ForensicService
+from app.intelligence.engine import IntelligenceEngine
 from app.ocr.engine import OCREngine
 from app.ocr.extractor import get_extractor
 from app.ocr.mrz import detect_mrz
@@ -54,6 +55,7 @@ class ScreeningPipeline:
         rules_engine: Optional[RulesEngine] = None,
         forensic_service: Optional[ForensicService] = None,
         biometric_service: Optional[BiometricService] = None,
+        intelligence_engine: Optional[IntelligenceEngine] = None,
     ):
         self._ocr = ocr_engine
         # Phase 2 orchestrator. Deterministic and stateless, so a default
@@ -65,6 +67,11 @@ class ScreeningPipeline:
         # Phase 4 biometric service (InsightFace-backed). Injectable so tests
         # can stub it or exercise failure paths.
         self._biometrics = biometric_service or InsightFaceBiometricService()
+        # Phase 5 Intelligence Layer. Deterministic fusion/risk/recommendation
+        # plus an advisory LLM (disabled by default). Consumes the Phase 2-4
+        # outputs already on the response; never re-runs an engine. Injectable so
+        # tests can supply a stub LLM provider.
+        self._intelligence = intelligence_engine or IntelligenceEngine()
 
     def screen(
         self, data: bytes, reference_data: Optional[bytes] = None
@@ -142,6 +149,17 @@ class ScreeningPipeline:
         #    yields an UNAVAILABLE biometric result, never a MISMATCH, and never
         #    affects Phases 1-3.
         response.biometrics = self._run_biometrics(doc.original, reference_data)
+
+        # 10. Phase 5: Intelligence Layer over the Phase 2-4 outputs now on the
+        #     response. It re-runs no engine — it fuses the existing JSON, scores
+        #     risk transparently, produces an advisory LLM explanation and an
+        #     officer recommendation. Failure-isolated: any error leaves Phases
+        #     1-4 intact (intelligence stays None); an LLM outage is captured
+        #     inside the result as an UNAVAILABLE ``llm``, never a verdict.
+        try:
+            response.intelligence = self._intelligence.evaluate(response)
+        except Exception:  # last-resort guard around the whole layer
+            response.intelligence = None
 
         return response
 

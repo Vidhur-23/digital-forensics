@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 
 from app.api.schemas.biometric import BiometricResults
 from app.api.schemas.evidence import ForensicResults
+from app.intelligence.schemas import IntelligenceResult
 from app.ocr.schemas import BBox
 from app.rules.schemas import RuleResults
 
@@ -79,3 +80,9 @@ class ScreeningResponse(BaseModel):
     # Phase 4: biometric face-verification evidence. Optional; UNAVAILABLE when
     # no reference face image was supplied or the model could not run.
     biometrics: Optional[BiometricResults] = None
+    # Phase 5: Intelligence Layer — evidence fusion, transparent risk, LLM
+    # explanation and officer recommendation over the Phase 2-4 outputs.
+    # Optional so a bare Phase 1-4 result is still valid; None only if the
+    # intelligence step itself could not run (never on LLM outage — that is
+    # captured inside ``intelligence.llm`` as UNAVAILABLE).
+    intelligence: Optional[IntelligenceResult] = None

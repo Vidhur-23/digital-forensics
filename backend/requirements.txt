@@ -42,6 +42,14 @@ insightface
 onnxruntime
 
 # ─────────────────────────────
+# Intelligence Layer (Phase 5) — advisory LLM explanation.
+# Optional at runtime: the deterministic fusion/risk/recommendation work with
+# no LLM. The provider imports this lazily; install it only to enable the LLM
+# (APP_LLM_ENABLED=true). No API key is stored in code.
+# ─────────────────────────────
+anthropic
+
+# ─────────────────────────────
 # Data / Utilities
 # ─────────────────────────────
 pandas
