@@ -1,10 +1,11 @@
 {
     "document_id": "unknown_document",
-    "mean_error": 0.0,
-    "std_error": 0.0,
-    "max_error": 0,
-    "p95_error": 0.0,
-    "high_error_pct": 0.0,
+    "mean_error": 0.6496,
+    "std_error": 0.8916,
+    "max_error": 16,
+    "p95_error": 2.0,
+    "high_error_pct": 0.0059,
     "threshold_min": 1.311,
-    "threshold_max": 1.4218
+    "threshold_max": 1.4218,
+    "photo_doc_ratio": 0.6827
 }

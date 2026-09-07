@@ -1,69 +1,72 @@
 # ─────────────────────────────
 # API / Backend
 # ─────────────────────────────
-fastapi
-uvicorn[standard]
-python-multipart
-pydantic
-pydantic-settings
+fastapi==0.141.1
+uvicorn[standard]==0.52.4
+python-multipart==0.0.32
+pydantic==2.13.5
+pydantic-settings==2.15.0
 
 # ─────────────────────────────
 # Computer Vision / Image Processing
 # ─────────────────────────────
-opencv-python
-Pillow
-numpy
-scipy
-scikit-image
-matplotlib  # required by the forensic layer's signal modules (import-time)
+opencv-python==5.0.0.93
+Pillow==12.3.0
+numpy==2.5.2
+scipy==1.18.1
+scikit-image==0.26.0
+matplotlib==3.11.1  # required by the forensic layer's signal modules (import-time)
 
 # ─────────────────────────────
 # Machine Learning / Deep Learning
 # ─────────────────────────────
-torch
-torchvision
-timm
-scikit-learn
+torch==2.13.0
+torchvision==0.28.0
+timm==1.0.29
+scikit-learn==1.9.0
 
 # ─────────────────────────────
 # OCR
 # ─────────────────────────────
-pytesseract
+pytesseract==0.3.13
 
 # ─────────────────────────────
 # MRZ / Passport Processing
 # ─────────────────────────────
-passporteye
+passporteye==2.2.2
 
 # ─────────────────────────────
 # Face Detection / Verification
 # ─────────────────────────────
-insightface
-onnxruntime
+insightface==1.0.1
+onnxruntime==1.29.0
 
 # ─────────────────────────────
 # Intelligence Layer (Phase 5) — advisory LLM explanation.
 # Optional at runtime: the deterministic fusion/risk/recommendation work with
 # no LLM. The provider imports this lazily; install it only to enable the LLM
 # (APP_LLM_ENABLED=true). No API key is stored in code.
+# Not currently installed in the venv — unpinned until enabled.
 # ─────────────────────────────
 anthropic
 
 # ─────────────────────────────
 # Persistence (analysis records)
 # SQLAlchemy ORM; SQLite is stdlib (dev), psycopg2 drives Postgres (prod).
+# psycopg2-binary is not yet installed in the venv — install it before pointing
+# APP_DATABASE_URL at Postgres.
 # ─────────────────────────────
-SQLAlchemy>=2.0
+SQLAlchemy==2.0.52
 psycopg2-binary
 
 # ─────────────────────────────
 # Data / Utilities
 # ─────────────────────────────
-pandas
-python-dotenv
+pandas==3.0.5
+python-dotenv==1.2.3
 
 # ─────────────────────────────
 # Testing
 # ─────────────────────────────
-pytest
-httpx
+pytest==9.1.1
+httpx==0.28.1
