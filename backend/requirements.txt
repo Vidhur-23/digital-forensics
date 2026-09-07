@@ -50,6 +50,13 @@ onnxruntime
 anthropic
 
 # ─────────────────────────────
+# Persistence (analysis records)
+# SQLAlchemy ORM; SQLite is stdlib (dev), psycopg2 drives Postgres (prod).
+# ─────────────────────────────
+SQLAlchemy>=2.0
+psycopg2-binary
+
+# ─────────────────────────────
 # Data / Utilities
 # ─────────────────────────────
 pandas

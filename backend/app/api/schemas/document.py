@@ -80,6 +80,9 @@ class ScreeningResponse(BaseModel):
     # Phase 4: biometric face-verification evidence. Optional; UNAVAILABLE when
     # no reference face image was supplied or the model could not run.
     biometrics: Optional[BiometricResults] = None
+    # Identifier of the persisted analysis record (set when the result is saved
+    # to the database). None when persistence is disabled or failed.
+    analysis_id: Optional[str] = None
     # Phase 5: Intelligence Layer — evidence fusion, transparent risk, LLM
     # explanation and officer recommendation over the Phase 2-4 outputs.
     # Optional so a bare Phase 1-4 result is still valid; None only if the

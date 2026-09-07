@@ -1,56 +1,64 @@
-"""Application configuration (Phase 1).
+"""Application configuration.
 
-Kept intentionally small — only what the document/OCR pipeline needs.
+Every setting's VALUE lives in the ``.env`` file (``backend/.env``), not here —
+this module only declares the fields and their types and loads them from that
+file. There are intentionally no inline defaults: the ``.env`` file is the single
+source of configuration values (see ``.env.example`` for the template).
 """
 from __future__ import annotations
 
+from pathlib import Path
+
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# backend/.env — resolved from this module's location so it is found regardless
+# of the current working directory the app/tests are launched from.
+_ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="APP_", env_file=".env", extra="ignore")
-
-    app_name: str = "SIH26188 Document Screening"
-    api_prefix: str = "/api"
-
-    # Note: the Phase 3 forensic layer lives inside the forensics package
-    # (``app/forensics``); its adapter locates it from its own module path, so
-    # no path setting is needed here.
-
-    # Accepted upload content types for the screening endpoint.
-    allowed_image_types: tuple[str, ...] = (
-        "image/jpeg",
-        "image/jpg",
-        "image/png",
-        "image/bmp",
-        "image/tiff",
-        "image/webp",
+    model_config = SettingsConfigDict(
+        env_prefix="APP_",
+        env_file=_ENV_FILE,
+        env_file_encoding="utf-8",
+        extra="ignore",
     )
-    # Reject absurdly large uploads early (bytes). 20 MB default.
-    max_upload_bytes: int = 20 * 1024 * 1024
 
+    # --- Application ---
+    app_name: str
+    api_prefix: str
+    # Accepted upload content types for the screening endpoint (JSON list in .env).
+    allowed_image_types: tuple[str, ...]
+    # Reject absurdly large uploads early (bytes).
+    max_upload_bytes: int
     # Optional explicit path to the tesseract binary (else taken from PATH).
-    tesseract_cmd: str | None = None
+    tesseract_cmd: str | None
 
-    # ── Phase 5: Intelligence Layer LLM configuration ──────────────────────
-    # The LLM is an *advisory* evidence-explanation layer. It is OFF by default
-    # so the deterministic pipeline (fusion + risk + recommendation) runs fully
-    # offline; enable it by setting APP_LLM_ENABLED=true and supplying a key.
-    #
-    # No API key is ever hard-coded — it comes from APP_LLM_API_KEY (or, when
-    # that is unset, the provider SDK's own env var, e.g. ANTHROPIC_API_KEY).
-    llm_enabled: bool = False
-    # Provider behind the small LLMProvider interface. "anthropic" is the only
-    # implemented HTTP provider; "none" forces the always-unavailable provider.
-    llm_provider: str = "anthropic"
-    # Model id. Default is the current most-capable Claude model.
-    llm_model: str = "claude-opus-5"
-    # Explicit key; when empty the anthropic SDK reads ANTHROPIC_API_KEY itself.
-    llm_api_key: str | None = None
-    # Optional override for a self-hosted / gateway endpoint.
-    llm_base_url: str | None = None
-    llm_timeout_seconds: float = 30.0
-    llm_max_output_tokens: int = 1200
+    # --- Phase 5: Intelligence Layer LLM ---
+    llm_enabled: bool
+    llm_provider: str
+    llm_model: str
+    # No API key is ever hard-coded; it comes from APP_LLM_API_KEY (or the SDK's
+    # own env var when this is empty).
+    llm_api_key: str | None
+    llm_base_url: str | None
+    llm_timeout_seconds: float
+    llm_max_output_tokens: int
+
+    # --- Persistence (analysis records) ---
+    database_url: str
+    evidence_dir: str
+    persist_analyses: bool
+    db_auto_create: bool
+
+    @field_validator("tesseract_cmd", "llm_api_key", "llm_base_url", mode="before")
+    @classmethod
+    def _blank_to_none(cls, v):
+        """Treat an empty .env value (e.g. ``APP_LLM_API_KEY=``) as unset."""
+        if isinstance(v, str) and v.strip() == "":
+            return None
+        return v
 
 
 settings = Settings()

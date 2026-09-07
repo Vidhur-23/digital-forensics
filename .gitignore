@@ -1,3 +1,16 @@
-.env.example
+# Secrets / local env — never commit real .env (may hold API keys).
+# The committed template is .env.example.
+.env
+*/.env
+backend/.env
+
 /venv
 /pycache
+__pycache__/
+*.pyc
+
+# Local dev persistence (SQLite DB + stored evidence images). Configure real
+# storage via APP_DATABASE_URL / APP_EVIDENCE_DIR in production.
+*.db
+screening.db
+evidence_store/

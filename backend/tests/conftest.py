@@ -82,6 +82,17 @@ def make_image_bytes(width: int = 1000, height: int = 1000, fmt: str = "PNG") ->
     return buf.getvalue()
 
 
+@pytest.fixture(autouse=True)
+def _no_persistence_by_default(monkeypatch):
+    """Keep the test suite hermetic: by default no test writes to the real dev
+    database or evidence directory. The persistence tests opt back in with their
+    own temp DB (see ``tests/test_persistence.py``)."""
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "persist_analyses", False)
+    monkeypatch.setattr(settings, "db_auto_create", False)
+
+
 @pytest.fixture
 def stub_engine() -> StubOCREngine:
     return StubOCREngine()

@@ -6,17 +6,30 @@ response by the pipeline — see ``app.pipeline.pipeline``).
 """
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import documents, health
+from app.api.routes import analyses, documents, health
 from app.config import settings
+from app.database.connection import init_db
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Create tables for dev/SQLite convenience (use Alembic in production).
+    if settings.db_auto_create:
+        init_db()
+    yield
+
 
 app = FastAPI(
     title=settings.app_name,
     version="0.2.0",
     description="SIH26188 — document capture, OCR, passport field extraction, "
     "MRZ detection (Phase 1) and deterministic rule findings (Phase 2).",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -27,9 +40,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Health at root; screening under the API prefix -> POST /api/screen.
+# Health at root; screening + stored analyses under the API prefix.
 app.include_router(health.router)
 app.include_router(documents.router, prefix=settings.api_prefix)
+app.include_router(analyses.router, prefix=settings.api_prefix)
 
 
 @app.get("/")
