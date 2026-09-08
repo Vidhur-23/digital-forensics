@@ -22,6 +22,18 @@ def test_parse_supported_formats():
     assert parse_date("12-04-1998") == date(1998, 4, 12)
 
 
+def test_parse_accepts_extractor_separators_and_2digit_years():
+    # The OCR extractor emits any of space / . - as a separator and 2- or
+    # 4-digit years; all of these are valid calendar dates and must parse.
+    assert parse_date("12-APR-1998") == date(1998, 4, 12)
+    assert parse_date("12/APR/1998") == date(1998, 4, 12)
+    assert parse_date("12.04.1998") == date(1998, 4, 12)
+    assert parse_date("1998.04.12") == date(1998, 4, 12)
+    assert parse_date("12 APR 98") == date(1998, 4, 12)
+    assert parse_date("12/04/98") == date(1998, 4, 12)
+    assert is_valid_date("12-APR-1998") is True
+
+
 def test_parse_rejects_impossible_and_malformed():
     assert parse_date("32 APR 1998") is None
     assert parse_date("1998-13-01") is None
@@ -42,6 +54,20 @@ def test_parse_mrz_date_century_windowing():
 
 
 # --- relationship rules ----------------------------------------------------
+
+
+def test_mrz_sourced_dates_are_parsed_not_flagged():
+    # The extractor fills DOB/expiry from the MRZ as raw YYMMDD (source="mrz").
+    # These are valid dates and must pass, not be flagged invalid.
+    r = make_response(
+        {
+            "date_of_birth": field("740812", source="mrz"),
+            "expiry_date": field("300101", source="mrz"),
+        }
+    )
+    findings = check_dates(r, today=date(2026, 9, 8))
+    assert _status(findings, "DATE_VALID_DATE_OF_BIRTH") == RuleStatus.PASS
+    assert _status(findings, "DATE_VALID_EXPIRY_DATE") == RuleStatus.PASS
 
 
 def test_invalid_date_flagged():

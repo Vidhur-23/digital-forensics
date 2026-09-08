@@ -1,4 +1,4 @@
-"""Phase 2: Rules Engine orchestration + common/passport/trusted-record rules."""
+"""Phase 2: Rules Engine orchestration + common/passport rules."""
 from __future__ import annotations
 
 from app.rules.engine import RulesEngine
@@ -86,27 +86,6 @@ def test_passport_specific_rules_present_and_pass():
     assert _by_id(results, "PASSPORT_MRZ_FORMAT").status == RuleStatus.PASS
     assert _by_id(results, "PASSPORT_MRZ_TYPE").status == RuleStatus.PASS
     assert _by_id(results, "PASSPORT_DOC_NUMBER_FORMAT").status == RuleStatus.PASS
-
-
-# --- mock trusted record ---------------------------------------------------
-
-
-def test_trusted_record_match():
-    results = RulesEngine().evaluate(genuine_response())
-    assert _by_id(results, "TRUSTED_RECORD_EXISTS").status == RuleStatus.PASS
-    assert _by_id(results, "TRUSTED_RECORD_DOB").status == RuleStatus.PASS
-    assert _by_id(results, "TRUSTED_RECORD_STATUS").status == RuleStatus.PASS
-
-
-def test_trusted_record_dob_mismatch():
-    # Document number exists in the mock DB, but DOB differs -> DOB mismatch,
-    # record still exists and its status is still reported.
-    r = genuine_response()
-    r.fields["date_of_birth"] = field("01 JAN 1990")
-    r.mrz.fields.date_of_birth = "900101"  # keep MRZ consistent with visual
-    results = RulesEngine().evaluate(r)
-    assert _by_id(results, "TRUSTED_RECORD_EXISTS").status == RuleStatus.PASS
-    assert _by_id(results, "TRUSTED_RECORD_DOB").status == RuleStatus.FAIL
 
 
 def test_engine_summary_counts():

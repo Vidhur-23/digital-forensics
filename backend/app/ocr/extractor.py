@@ -102,18 +102,90 @@ class PassportFieldExtractor(FieldExtractor):
     # --- visual passes -----------------------------------------------------
 
     def _extract_dates(self, lines: List[OCRLine], out: Dict[str, ExtractedField]):
-        for line in lines:
-            low = line.text.lower()
-            date = _find_date(line.text)
-            if not date:
+        """Assign a date to each labelled date field.
+
+        Passports do not reliably print a label and its date on one OCR line: the
+        value often sits to the *right* of the label, or on the line *below* it.
+        We try two strategies, most reliable first, and never reuse a date line
+        that has already been assigned to another field:
+
+          1. label keyword and a date on the **same** line;
+          2. a label line (keyword present, date maybe not) paired with the
+             nearest date on a **neighbouring** line — to its right on the same
+             row, or directly beneath it.
+        """
+        dated = [(ln, d) for ln in lines if (d := _find_date(ln.text))]
+        claimed: set[int] = set()
+
+        # Pass 1: label + date share one line (most reliable).
+        for field, keywords in self._DATE_LABELS.items():
+            if field in out:
                 continue
-            for field, keywords in self._DATE_LABELS.items():
-                if field in out:
+            for ln, date in dated:
+                if id(ln) in claimed:
                     continue
-                if any(k in low for k in keywords):
+                if any(k in ln.text.lower() for k in keywords):
                     out[field] = ExtractedField(
-                        value=date, confidence=line.confidence, bbox=line.bbox
+                        value=date, confidence=ln.confidence, bbox=ln.bbox
                     )
+                    claimed.add(id(ln))
+                    break
+
+        # Pass 2: label on one line, its date on a neighbouring line.
+        for field, keywords in self._DATE_LABELS.items():
+            if field in out:
+                continue
+            label = next(
+                (ln for ln in lines if any(k in ln.text.lower() for k in keywords)),
+                None,
+            )
+            if label is None:
+                continue
+            pick = self._nearest_date_line(label, dated, claimed)
+            if pick is not None:
+                ln, date = pick
+                out[field] = ExtractedField(
+                    value=date, confidence=ln.confidence, bbox=ln.bbox
+                )
+                claimed.add(id(ln))
+
+    @staticmethod
+    def _nearest_date_line(
+        label: OCRLine,
+        dated: List[tuple],
+        claimed: set,
+    ) -> Optional[tuple]:
+        """Nearest unclaimed date line that reads as ``label``'s value.
+
+        Candidates are the date on the same row to the label's right, or on a
+        line below it (within ~3x the label height so we don't reach across the
+        page). Same-row-right wins over below; ties break on proximity. Dates
+        above the label are never its value.
+        """
+        lx1, ly1, lx2, ly2 = label.bbox
+        label_height = max(ly2 - ly1, 1)
+        label_cy = (ly1 + ly2) / 2
+
+        best: Optional[tuple] = None
+        best_cost: Optional[tuple] = None
+        for ln, date in dated:
+            if id(ln) in claimed or ln is label:
+                continue
+            cx1, cy1, cx2, cy2 = ln.bbox
+            cand_cy = (cy1 + cy2) / 2
+            same_row = cy1 <= label_cy <= cy2 or ly1 <= cand_cy <= ly2
+            if same_row and cx1 >= lx1:
+                cost = (0, max(cx1 - lx2, 0))                      # value to the right
+            elif cy1 >= label_cy:
+                gap = cy1 - ly2
+                if gap > 3 * label_height:
+                    continue                                        # too far below
+                cost = (1, gap + abs(cx1 - lx1) * 0.25)             # value on a line below
+            else:
+                continue                                            # above -> not its value
+            if best_cost is None or cost < best_cost:
+                best_cost, best = cost, (ln, date)
+        return best
 
     def _extract_document_number(self, lines, out):
         for line in lines:

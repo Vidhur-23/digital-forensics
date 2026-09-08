@@ -25,21 +25,37 @@ from app.rules.schemas import RuleFinding, RuleSeverity, RuleStatus
 CATEGORY = "date"
 
 # Human-readable formats the Phase 1 visual extractor can produce.
+#
+# The extractor (``app.ocr.extractor``) accepts any of space, ``/``, ``.`` or
+# ``-`` as a separator and both 2- and 4-digit years, so a genuine passport can
+# yield ``12-APR-1998``, ``12/04/98`` or ``12 APR 98`` just as legitimately as
+# ``12 APR 1998``. We therefore collapse every separator run to a single space
+# in :func:`parse_date` before matching, and the format list below is written
+# against that normalised form — one space between each component. Keeping the
+# format separator identical to the input separator (the old approach) rejected
+# valid dates purely on punctuation, which is the bug this list fixes.
 _TEXT_FORMATS = (
-    "%d %b %Y",   # 12 APR 1998
+    "%d %b %Y",   # 12 APR 1998   (also 12-APR-1998, 12/APR/1998, ...)
     "%d %B %Y",   # 12 APRIL 1998
-    "%Y-%m-%d",   # 1998-04-12
-    "%d/%m/%Y",   # 12/04/1998
-    "%d-%m-%Y",   # 12-04-1998
-    "%d.%m.%Y",   # 12.04.1998
-    "%Y/%m/%d",   # 1998/04/12
+    "%d %b %y",   # 12 APR 98
+    "%d %B %y",   # 12 APRIL 98
+    "%Y %m %d",   # 1998-04-12    (year-first is always 4-digit)
+    "%d %m %Y",   # 12/04/1998
+    "%d %m %y",   # 12/04/98
 )
 
-_MONTH_SEP_RE = re.compile(r"[ /.\-]")
+# One or more separator characters (space, slash, dot, hyphen) between the
+# day/month/year components. ``%Y`` will not match a 2-digit run, so 4- and
+# 2-digit years stay unambiguous and never collide across the formats above.
+_SEP_RE = re.compile(r"[ /.\-]+")
 
 
 def parse_date(raw: Optional[str]) -> Optional[date]:
     """Parse a human-readable date string into a ``date``.
+
+    Accepts the day/month/year separators (space, ``/``, ``.``, ``-``) and the
+    2- or 4-digit years the Phase 1 extractor can emit, so a valid date is not
+    rejected merely for its punctuation or year width.
 
     Returns ``None`` for empty, malformed or impossible dates (e.g.
     ``32 APR 1998``). ``strptime`` rejects impossible day/month values, so we get
@@ -47,7 +63,7 @@ def parse_date(raw: Optional[str]) -> Optional[date]:
     """
     if not raw:
         return None
-    text = raw.strip().upper()
+    text = _SEP_RE.sub(" ", raw.strip().upper()).strip()
     for fmt in _TEXT_FORMATS:
         try:
             return datetime.strptime(text, fmt).date()
@@ -99,6 +115,23 @@ def _field(result: ScreeningResponse, name: str) -> Optional[str]:
     return fv.value if fv else None
 
 
+def _parse_field(result: ScreeningResponse, name: str, *, is_expiry: bool = False) -> Optional[date]:
+    """Parse a date field with the parser its ``source`` requires.
+
+    MRZ-sourced fields carry the raw ``YYMMDD`` the machine-readable zone prints
+    (e.g. ``740812``), which :func:`parse_date` cannot read — they need
+    :func:`parse_mrz_date` and its century windowing. Visual fields carry
+    human-readable text. Picking the parser by ``source`` stops a perfectly
+    valid MRZ date being reported as an invalid calendar date.
+    """
+    fv = result.fields.get(name)
+    if fv is None or not fv.value:
+        return None
+    if getattr(fv, "source", "visual") == "mrz":
+        return parse_mrz_date(fv.value, is_expiry=is_expiry)
+    return parse_date(fv.value)
+
+
 def check_dates(result: ScreeningResponse, *, today: Optional[date] = None) -> List[RuleFinding]:
     """Run all date-related deterministic checks over a Phase 1 result."""
     today = today or date.today()
@@ -108,9 +141,9 @@ def check_dates(result: ScreeningResponse, *, today: Optional[date] = None) -> L
     issue_raw = _field(result, "issue_date")
     expiry_raw = _field(result, "expiry_date")
 
-    dob = parse_date(dob_raw)
-    issue = parse_date(issue_raw)
-    expiry = parse_date(expiry_raw)
+    dob = _parse_field(result, "date_of_birth")
+    issue = _parse_field(result, "issue_date")
+    expiry = _parse_field(result, "expiry_date", is_expiry=True)
 
     # 1. Malformed / impossible date detection (per present field).
     for name, raw, parsed in (

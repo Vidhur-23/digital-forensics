@@ -1,13 +1,13 @@
 {
     "document_id": "unknown_document",
-    "mahalanobis_distance": 51.0893,
+    "mahalanobis_distance": 1496.3396,
     "threshold": 3.2748,
     "color_signature": [
-        212.5294,
-        120.1633,
-        133.4449,
-        50.3568,
-        6.2831,
-        6.6374
+        206.8549,
+        128.3094,
+        123.6183,
+        40.446,
+        4.878,
+        8.0829
     ]
 }

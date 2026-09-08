@@ -102,8 +102,8 @@ def make_response(
 def genuine_response() -> ScreeningResponse:
     """A clean, internally-consistent, non-expired synthetic passport.
 
-    All visual fields agree with the MRZ, dates are ordered, and the document
-    number matches a mock trusted record -> every rule should PASS.
+    All visual fields agree with the MRZ and dates are ordered -> every rule
+    should PASS.
     """
     mrz = make_mrz(
         doc_no="L898902C3",

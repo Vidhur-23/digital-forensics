@@ -22,7 +22,7 @@ from __future__ import annotations
 from typing import Callable, Dict, List
 
 from app.api.schemas.document import ScreeningResponse
-from app.rules import common, consistency, dates, mrz, passport, trusted_record
+from app.rules import common, consistency, dates, mrz, passport
 from app.rules.schemas import RuleFinding, RuleResults
 
 # A rule group is a callable: ScreeningResponse -> List[RuleFinding].
@@ -35,7 +35,6 @@ _COMMON_GROUPS: List[RuleGroup] = [
     dates.check_dates,
     mrz.check_mrz,
     consistency.check_consistency,
-    trusted_record.check_trusted_record,
 ]
 
 # Per-type additional groups. Passport is the only supported document type.

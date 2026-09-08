@@ -50,7 +50,7 @@ class RuleFinding(BaseModel):
     """
 
     rule_id: str
-    category: str  # required_field | format | date | mrz | consistency | passport | trusted_record
+    category: str  # required_field | format | date | mrz | consistency | passport
     status: RuleStatus
     severity: RuleSeverity
     field: Optional[str] = None
