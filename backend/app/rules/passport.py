@@ -18,6 +18,7 @@ import re
 from typing import List, Optional
 
 from app.api.schemas.document import ScreeningResponse
+from app.rules.mrz import mrz_is_reliable
 from app.rules.schemas import RuleFinding, RuleSeverity, RuleStatus
 
 CATEGORY = "passport"
@@ -75,6 +76,15 @@ def check_passport(result: ScreeningResponse) -> List[RuleFinding]:
                 evidence={"format": fmt},
             )
         )
+
+        # The document-type and sex indicators are individual MRZ field values.
+        # If the MRZ was misread (its check digits fail wholesale) those values
+        # are garbage, so flagging them would just re-report the unreadable MRZ
+        # already captured by MRZ_UNRELIABLE. Only judge them when the MRZ reads
+        # reliably. (PASSPORT_MRZ_FORMAT above is structural — line count/length
+        # — and stays regardless.)
+        if not mrz_is_reliable(result):
+            return findings
 
         # Document-type indicator should be a 'P' family code.
         dtype = (result.mrz.fields.document_type or "").upper()

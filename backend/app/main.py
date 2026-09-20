@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import analyses, documents, health
+from app.api.routes import analyses, chain, documents, health
 from app.config import settings
 from app.database.connection import init_db
 
@@ -44,6 +44,7 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(documents.router, prefix=settings.api_prefix)
 app.include_router(analyses.router, prefix=settings.api_prefix)
+app.include_router(chain.router, prefix=settings.api_prefix)
 
 
 @app.get("/")

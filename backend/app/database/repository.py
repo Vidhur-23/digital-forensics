@@ -17,6 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.schemas.document import ScreeningResponse
+from app.audit import ledger
 from app.config import settings
 from app.database.models import Analysis, EvidenceFile
 
@@ -98,6 +99,7 @@ def persist_screening(
     document_content_type: Optional[str] = None,
     reference_bytes: Optional[bytes] = None,
     reference_content_type: Optional[str] = None,
+    actor: Optional[str] = None,
 ) -> Analysis:
     """Store one screening result + its evidence images. Returns the row."""
     files = [_store_file("document", document_bytes, document_content_type)]
@@ -106,13 +108,42 @@ def persist_screening(
             _store_file("reference_face", reference_bytes, reference_content_type)
         )
 
+    full_result = response.model_dump(mode="json")
     record = Analysis(
         **_extract_columns(response),
         has_reference_face=bool(reference_bytes),
-        full_result=response.model_dump(mode="json"),
+        full_result=full_result,
         evidence_files=[EvidenceFile(**f) for f in files],
     )
     db.add(record)
+    db.flush()  # assign record.id before we fingerprint it for the chain
+
+    # Mine a block committing this screening onto the chain, in the SAME
+    # transaction, so the record and its block commit together. Fingerprints
+    # only — no PII/biometrics ever go on-chain.
+    ledger.add_block(
+        db,
+        [
+            {
+                "action": "screening.created",
+                "subject_type": "analysis",
+                "subject_id": record.id,
+                "actor": actor,
+                "payload": {
+                    "result_sha256": ledger.result_fingerprint(full_result),
+                    "evidence": [
+                        {"kind": f["kind"], "sha256": f["sha256"]} for f in files
+                    ],
+                    "risk_level": record.risk_level,
+                    "risk_score": record.risk_score,
+                    "recommendation": record.recommendation,
+                },
+            }
+        ],
+        miner=actor,
+        commit=False,
+    )
+
     db.commit()
     db.refresh(record)
     return record
@@ -130,3 +161,45 @@ def list_analyses(db: Session, limit: int = 50, offset: int = 0) -> list[Analysi
 
 def get_analysis(db: Session, analysis_id: str) -> Optional[Analysis]:
     return db.get(Analysis, analysis_id)
+
+
+# --- blockchain -------------------------------------------------------------
+
+def list_blocks(db: Session, limit: int = 50, offset: int = 0) -> list:
+    """Blocks, newest (highest) first, for a block explorer."""
+    from app.database.models import Block  # local import: chain is optional
+
+    stmt = (
+        select(Block)
+        .order_by(Block.index.desc())
+        .limit(max(1, min(limit, 200)))
+        .offset(max(0, offset))
+    )
+    return list(db.scalars(stmt).all())
+
+
+def get_block(db: Session, index: int):
+    """One block by height, or None."""
+    from app.database.models import Block
+
+    return db.scalars(select(Block).where(Block.index == index)).first()
+
+
+def verify_chain(db: Session) -> dict:
+    """Recompute the whole chain and report whether it is intact."""
+    return ledger.verify_chain(db)
+
+
+def chain_stats(db: Session) -> dict:
+    """Chain header stats for a dashboard banner."""
+    return ledger.chain_stats(db)
+
+
+def demo_tamper(db: Session, index: Optional[int] = None) -> dict:
+    """Demo-only: alter a sealed block so verification fails."""
+    return ledger.demo_tamper(db, index)
+
+
+def demo_restore(db: Session) -> dict:
+    """Demo-only: undo any demo tampering."""
+    return ledger.demo_restore(db)

@@ -1,6 +1,14 @@
 {
     "document_id": "unknown_document",
-    "long_straight_line_count": 0,
-    "total_lines_detected": 0,
-    "lines": []
+    "long_straight_line_count": 1,
+    "total_lines_detected": 1,
+    "lines": [
+        {
+            "x1": 168,
+            "y1": 879,
+            "x2": 573,
+            "y2": 879,
+            "length": 405.0
+        }
+    ]
 }

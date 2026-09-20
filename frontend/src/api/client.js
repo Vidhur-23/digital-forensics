@@ -56,3 +56,64 @@ export async function screenDocument(documentFile, referenceFaceFile) {
 
   return response.json();
 }
+
+// --- blockchain ledger ------------------------------------------------------
+// Read-only endpoints for the tamper-evident chain. Every screening mines a
+// block committing only fingerprints (hashes) — never PII.
+
+async function getJson(path) {
+  let response;
+  try {
+    response = await fetch(`${API_BASE}${path}`);
+  } catch (networkErr) {
+    throw new Error(
+      `Could not reach the backend at ${API_BASE || window.location.origin}` +
+        `${path}. Is the FastAPI server running? (${networkErr.message})`
+    );
+  }
+  if (!response.ok) {
+    throw new Error(`Request failed (HTTP ${response.status}) for ${path}.`);
+  }
+  return response.json();
+}
+
+// Chain header stats: { height, blocks, transactions, head, difficulty }.
+export function getChainStats() {
+  return getJson("/api/chain");
+}
+
+// Recompute & validate the whole chain: { ok, blocks, head, broken_at, ... }.
+export function verifyChain() {
+  return getJson("/api/chain/verify");
+}
+
+// Blocks newest-first, each with its transactions.
+export function listBlocks(limit = 50, offset = 0) {
+  return getJson(`/api/chain/blocks?limit=${limit}&offset=${offset}`);
+}
+
+async function postJson(path) {
+  let response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, { method: "POST" });
+  } catch (networkErr) {
+    throw new Error(
+      `Could not reach the backend at ${API_BASE || window.location.origin}` +
+        `${path}. (${networkErr.message})`
+    );
+  }
+  if (!response.ok) {
+    throw new Error(`Request failed (HTTP ${response.status}) for ${path}.`);
+  }
+  return response.json();
+}
+
+// DEMO ONLY: simulate an attacker altering a sealed block (verify then fails).
+export function tamperChain() {
+  return postJson("/api/chain/demo/tamper");
+}
+
+// DEMO ONLY: undo any tampering so the chain verifies again.
+export function restoreChain() {
+  return postJson("/api/chain/demo/restore");
+}

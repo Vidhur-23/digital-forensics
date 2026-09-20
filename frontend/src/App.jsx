@@ -14,6 +14,7 @@ import BiometricComparison from "./components/BiometricComparison.jsx";
 import ForensicFinding from "./components/ForensicFinding.jsx";
 import FieldTable from "./components/FieldTable.jsx";
 import Panel from "./components/Panel.jsx";
+import LedgerExplorer from "./components/LedgerExplorer.jsx";
 
 export default function App() {
   const [result, setResult] = useState(null);
@@ -22,6 +23,8 @@ export default function App() {
   // Object URLs of the uploaded images, for the viewer / biometric panel.
   const [docSrc, setDocSrc] = useState(null);
   const [refSrc, setRefSrc] = useState(null);
+  // Which top-level view: the screening workspace or the blockchain explorer.
+  const [view, setView] = useState("screening");
 
   async function handleAnalyze(documentFile, referenceFile) {
     setLoading(true);
@@ -47,6 +50,31 @@ export default function App() {
 
   return (
     <AppShell nav={<PipelineNav result={result} loading={loading} />}>
+      <div className="view-tabs" role="tablist">
+        <button
+          role="tab"
+          aria-selected={view === "screening"}
+          className={`view-tab ${view === "screening" ? "active" : ""}`}
+          onClick={() => setView("screening")}
+        >
+          Screening
+        </button>
+        <button
+          role="tab"
+          aria-selected={view === "ledger"}
+          className={`view-tab ${view === "ledger" ? "active" : ""}`}
+          onClick={() => setView("ledger")}
+        >
+          ⛓ Blockchain ledger
+        </button>
+      </div>
+
+      {view === "ledger" ? (
+        <div className="ledger-view">
+          <LedgerExplorer />
+        </div>
+      ) : (
+      <>
       <div className="left-col">
         <UploadPanel onAnalyze={handleAnalyze} loading={loading} />
         {result && <EngineStatus result={result} />}
@@ -130,6 +158,8 @@ export default function App() {
           </>
         )}
       </div>
+      </>
+      )}
     </AppShell>
   );
 }

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from app.rules.mrz import check_mrz, compute_check_digit, parse_td3
-from app.rules.schemas import RuleStatus
+from app.rules.schemas import RuleSeverity, RuleStatus
 from tests.rules_helpers import make_mrz, make_response
 
 # Known-valid ICAO TD3 specimen (Utopia / ERIKSSON). Independently documented as
@@ -65,3 +65,38 @@ def test_check_mrz_reports_failed_check_digit():
 def test_no_mrz_yields_warning_not_applicable():
     findings = check_mrz(make_response({}))
     assert any(f.rule_id == "MRZ_PRESENT" and f.status == RuleStatus.WARNING for f in findings)
+
+
+def test_wholesale_check_failure_reports_single_unreliable_not_cascade():
+    """A misread MRZ (every field check digit fails) is a read-quality problem,
+    not tampering. It must collapse into one MRZ_UNRELIABLE warning rather than a
+    stack of independent HIGH MRZ_CHECK_* failures (which would saturate risk)."""
+    mrz = make_mrz("L898902C3", "UTO", "740812", "F", "300101", "ERIKSSON", "ANNA MARIA")
+    # Shift line 2 left by one char so the whole zone misaligns -> all fail.
+    line1, line2 = mrz.text.split("\n")
+    mrz.text = f"{line1}\n{line2[1:]}X"
+
+    findings = check_mrz(make_response({}, mrz))
+    ids = {f.rule_id for f in findings}
+    assert "MRZ_UNRELIABLE" in ids
+    unreliable = next(f for f in findings if f.rule_id == "MRZ_UNRELIABLE")
+    assert unreliable.status == RuleStatus.WARNING
+    assert unreliable.severity == RuleSeverity.MEDIUM
+    # No per-field check-digit findings are emitted in the wholesale case.
+    assert not any(f.rule_id.startswith("MRZ_CHECK_") for f in findings)
+
+
+def test_targeted_check_failure_is_not_collapsed():
+    """A single altered field (some checks pass, some fail) is the real tamper
+    signal and must still surface per-field HIGH findings, not MRZ_UNRELIABLE."""
+    mrz = make_mrz("L898902C3", "UTO", "740812", "F", "300101", "ERIKSSON", "ANNA MARIA")
+    line1, line2 = mrz.text.split("\n")
+    # Break only the DOB check digit.
+    line2 = line2[:19] + ("0" if line2[19] != "0" else "1") + line2[20:]
+    mrz.text = f"{line1}\n{line2}"
+
+    findings = check_mrz(make_response({}, mrz))
+    ids = {f.rule_id for f in findings}
+    assert "MRZ_UNRELIABLE" not in ids
+    dob_chk = next(f for f in findings if f.rule_id == "MRZ_CHECK_DATE_OF_BIRTH")
+    assert dob_chk.status == RuleStatus.FAIL

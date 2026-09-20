@@ -25,6 +25,22 @@ def test_name_conflict_fails():
     assert _find(check_consistency(r), "CONSISTENCY_NAME").status == RuleStatus.FAIL
 
 
+def test_unreadable_mrz_makes_consistency_not_applicable():
+    """When the MRZ reads unreliably (check digits fail wholesale) its field
+    values are garbage, so a visual/MRZ mismatch is not a real discrepancy — it
+    is the same unreadable-MRZ symptom. Consistency must report NOT_APPLICABLE
+    rather than a HIGH document-number/name mismatch."""
+    mrz = _mrz()
+    line1, line2 = mrz.text.split("\n")
+    mrz.text = f"{line1}\n{line2[1:]}X"  # shift line 2 -> every check digit fails
+    r = make_response({"document_number": field("L898902C3")}, mrz)
+
+    findings = check_consistency(r)
+    ids = {f.rule_id for f in findings}
+    assert ids == {"CONSISTENCY_MRZ"}
+    assert findings[0].status == RuleStatus.NOT_APPLICABLE
+
+
 def test_dob_match_passes():
     r = make_response({"date_of_birth": field("12 AUG 1974")}, _mrz())
     assert _find(check_consistency(r), "CONSISTENCY_DOB").status == RuleStatus.PASS

@@ -21,6 +21,37 @@ from app.ocr.schemas import BBox, OCRResult
 # A candidate MRZ line: mostly A-Z, 0-9 and the filler '<', reasonably long.
 _MRZ_LINE_RE = re.compile(r"^[A-Z0-9<]{25,}$")
 
+# TD3 lines are exactly 44 characters. OCR may drop or add a few, so we accept a
+# tolerance band when deciding which candidate lines are the *real* MRZ.
+_TD3_LEN = 44
+_TD3_MIN = 38
+_TD3_MAX = 48
+
+
+def _select_mrz_lines(candidates: List) -> List:
+    """Pick the two lines that actually make up a TD3 MRZ.
+
+    ``candidates`` is a list of ``(OCRLine, normalised_text)`` in top-to-bottom
+    reading order. We must not simply grab the last two charset-matching lines:
+    a long serial/barcode/control-number below the MRZ, or the MRZ arriving as a
+    single merged line, both break that assumption.
+    """
+    # Case 1: the two rows were merged into one ~88-char line. Split in half.
+    if len(candidates) == 1:
+        ln, text = candidates[0]
+        if 2 * _TD3_MIN <= len(text) <= 2 * _TD3_MAX:
+            mid = len(text) // 2
+            return [(ln, text[:mid]), (ln, text[mid:])]
+
+    # Case 2: prefer candidates whose length matches a TD3 line, which excludes
+    # stray serials/barcodes that happen to use the MRZ character set.
+    strong = [c for c in candidates if _TD3_MIN <= len(c[1]) <= _TD3_MAX]
+    if len(strong) >= 2:
+        return strong[-2:]
+
+    # Fallback: keep prior behaviour — the last two candidate lines.
+    return candidates[-2:]
+
 
 class MRZFields(BaseModel):
     """Raw values read out of the MRZ. Empty string == not present/unreadable."""
@@ -94,9 +125,9 @@ def detect_mrz(ocr_result: OCRResult) -> MRZResult:
     if not candidates:
         return MRZResult(detected=False)
 
-    # Keep the last 2 candidate lines (TD3). This favours the real MRZ over any
-    # stray uppercase/serial line higher up the page.
-    mrz_lines = candidates[-2:]
+    # Select the two lines that actually form the TD3 MRZ, tolerating a stray
+    # serial line below the zone or the two rows arriving merged as one line.
+    mrz_lines = _select_mrz_lines(candidates)
     texts = [t for _, t in mrz_lines]
 
     # Merge bounding boxes into one region.

@@ -46,9 +46,9 @@ onnxruntime==1.29.0
 # Optional at runtime: the deterministic fusion/risk/recommendation work with
 # no LLM. The provider imports this lazily; install it only to enable the LLM
 # (APP_LLM_ENABLED=true). No API key is stored in code.
-# Not currently installed in the venv — unpinned until enabled.
+# Installed and enabled (APP_LLM_ENABLED=true, provider=anthropic).
 # ─────────────────────────────
-anthropic
+anthropic>=1.4
 
 # ─────────────────────────────
 # Persistence (analysis records)

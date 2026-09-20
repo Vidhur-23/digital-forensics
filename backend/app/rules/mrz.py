@@ -152,6 +152,38 @@ def parse_mrz_lines(lines: List[str]) -> Optional[ParsedMRZ]:
     return None
 
 
+def _is_wholesale_check_failure(parsed: ParsedMRZ) -> bool:
+    """True when *every* field-level check digit fails.
+
+    Under ICAO 9303 the field check digits are independent and the composite is
+    derived from them. A genuine forgery breaks the check digit of the altered
+    field (plus the composite) — a targeted 1-2 failures. Having *every* field
+    check digit fail at once is not a plausible tamper pattern; it is the
+    signature of an MRZ that was misread or misaligned by OCR. Callers use this
+    to distinguish "the MRZ couldn't be read" from "a specific field was
+    altered".
+    """
+    field_checks = [c for c in parsed.check_digits if c.name != "composite"]
+    failed_fields = [c for c in field_checks if not c.ok]
+    return len(field_checks) >= 2 and len(failed_fields) == len(field_checks)
+
+
+def mrz_is_reliable(result: ScreeningResponse) -> bool:
+    """Whether the MRZ was read well enough to trust its field *values*.
+
+    An unreliable MRZ (unparseable, or one whose check digits fail wholesale)
+    carries garbage field values, so downstream rules that consume those values
+    — visual/MRZ consistency, MRZ-sourced date validity — must not raise
+    independent concerns off them. They gate on this predicate.
+    """
+    if not result.mrz or not result.mrz.detected:
+        return False
+    parsed = parse_mrz_lines(_mrz_lines_from_result(result))
+    if parsed is None:
+        return False
+    return not _is_wholesale_check_failure(parsed)
+
+
 def _mrz_lines_from_result(result: ScreeningResponse) -> List[str]:
     if not result.mrz or not result.mrz.detected:
         return []
@@ -197,7 +229,34 @@ def check_mrz(result: ScreeningResponse) -> List[RuleFinding]:
         )
     )
 
-    # One finding per check digit.
+    # Distinguish a *misread* MRZ from a *tampered* one. Under ICAO 9303 the
+    # field check digits are independent and the composite is derived from them.
+    # A genuine forgery breaks the check digit of the altered field plus the
+    # composite — a targeted 1-2 failures. It is not plausible for a real
+    # document to have *every* field check digit fail at once; that pattern is
+    # the signature of an MRZ that was misread or misaligned by OCR (a data
+    # quality problem), not of tampering. Reporting each of those correlated
+    # failures as an independent HIGH concern wrongly saturates the risk score
+    # on a merely hard-to-read scan, so collapse the wholesale case into one
+    # MEDIUM data-quality warning instead.
+    if _is_wholesale_check_failure(parsed):
+        findings.append(
+            RuleFinding.make(
+                "MRZ_UNRELIABLE", CATEGORY, RuleStatus.WARNING, RuleSeverity.MEDIUM,
+                "None of the MRZ check digits validate. This is consistent with "
+                "the MRZ being misread or unreadable (OCR quality) rather than a "
+                "specific altered field; re-scan at higher quality to validate.",
+                field="mrz",
+                evidence={
+                    "failed_checks": [c.name for c in parsed.check_digits if not c.ok],
+                    "checks_total": len(parsed.check_digits),
+                },
+            )
+        )
+        return findings
+
+    # Targeted failures (some pass, some fail) are the real tamper signal:
+    # one finding per check digit.
     for chk in parsed.check_digits:
         findings.append(
             RuleFinding.make(

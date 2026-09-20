@@ -51,3 +51,56 @@ class AnalysisRecordOut(AnalysisSummaryOut):
     # The complete ScreeningResponse as returned at analysis time — lets the
     # frontend re-render the whole result view from a saved record.
     full_result: Dict[str, Any] = {}
+
+
+class TransactionOut(BaseModel):
+    """One transaction inside a block (fingerprints + metadata only)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    tx_index: int
+    timestamp: datetime
+    actor: Optional[str] = None
+    action: str
+    subject_type: str
+    subject_id: Optional[str] = None
+    payload: Dict[str, Any] = {}
+    tx_hash: str
+
+
+class BlockOut(BaseModel):
+    """One block in the chain, including its transactions."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    index: int
+    timestamp: datetime
+    miner: Optional[str] = None
+    prev_hash: str
+    merkle_root: str
+    difficulty: int
+    nonce: int
+    hash: str
+    transactions: List[TransactionOut] = []
+
+
+class ChainStatsOut(BaseModel):
+    """Header stats for a block-explorer banner."""
+
+    height: int
+    blocks: int
+    transactions: int
+    head: Optional[str] = None
+    difficulty: int
+
+
+class ChainVerifyOut(BaseModel):
+    """Result of recomputing and validating the whole chain."""
+
+    ok: bool
+    blocks: int
+    transactions: int
+    head: Optional[str] = None
+    difficulty: int
+    broken_at: Optional[int] = None
+    reason: Optional[str] = None

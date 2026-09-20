@@ -22,6 +22,7 @@ from typing import List, Optional
 
 from app.api.schemas.document import FieldValue, ScreeningResponse
 from app.rules.dates import parse_date, parse_mrz_date
+from app.rules.mrz import mrz_is_reliable
 from app.rules.schemas import RuleFinding, RuleSeverity, RuleStatus
 
 CATEGORY = "consistency"
@@ -58,6 +59,21 @@ def check_consistency(result: ScreeningResponse) -> List[RuleFinding]:
     if not result.mrz or not result.mrz.detected:
         findings.append(
             _na("CONSISTENCY_MRZ", "mrz", "No MRZ detected; visual/MRZ consistency not applicable.")
+        )
+        return findings
+
+    # An unreadable MRZ (check digits fail wholesale) carries garbage field
+    # values. Cross-checking the printed fields against them would raise false
+    # mismatches on every field — all of them symptoms of the single unreadable
+    # MRZ, already reported by MRZ_UNRELIABLE. So the comparison is not
+    # applicable until the MRZ can be read reliably.
+    if not mrz_is_reliable(result):
+        findings.append(
+            _na(
+                "CONSISTENCY_MRZ", "mrz",
+                "MRZ could not be read reliably (check digits fail); visual/MRZ "
+                "consistency is not applicable until the MRZ is re-read.",
+            )
         )
         return findings
 

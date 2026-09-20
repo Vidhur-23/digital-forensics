@@ -115,6 +115,11 @@ def _field(result: ScreeningResponse, name: str) -> Optional[str]:
     return fv.value if fv else None
 
 
+def _field_source(result: ScreeningResponse, name: str) -> str:
+    fv = result.fields.get(name)
+    return getattr(fv, "source", "visual") if fv else "visual"
+
+
 def _parse_field(result: ScreeningResponse, name: str, *, is_expiry: bool = False) -> Optional[date]:
     """Parse a date field with the parser its ``source`` requires.
 
@@ -137,13 +142,32 @@ def check_dates(result: ScreeningResponse, *, today: Optional[date] = None) -> L
     today = today or date.today()
     findings: List[RuleFinding] = []
 
-    dob_raw = _field(result, "date_of_birth")
-    issue_raw = _field(result, "issue_date")
-    expiry_raw = _field(result, "expiry_date")
+    # A date field filled from the MRZ carries a raw YYMMDD read out of the
+    # machine-readable zone. If the MRZ was misread (its check digits fail
+    # wholesale) that value is garbage — an unreadable MRZ, not a genuinely
+    # invalid printed date. Reporting it as an impossible calendar date, or
+    # feeding it into the issue/expiry ordering checks, would raise concerns off
+    # data we know we couldn't read. So MRZ-sourced date fields are treated as
+    # absent while the MRZ is unreliable; the unreadable MRZ is reported once by
+    # MRZ_UNRELIABLE instead. Import locally to avoid a rules import cycle.
+    from app.rules.mrz import mrz_is_reliable
 
-    dob = _parse_field(result, "date_of_birth")
-    issue = _parse_field(result, "issue_date")
-    expiry = _parse_field(result, "expiry_date", is_expiry=True)
+    # Only suppress when an MRZ is actually present and reads unreliably; a field
+    # merely tagged source="mrz" with no detected MRZ is still validated as-is.
+    mrz_detected = bool(result.mrz and result.mrz.detected)
+    mrz_unreadable = mrz_detected and not mrz_is_reliable(result)
+
+    def _usable(name: str) -> bool:
+        """False for an MRZ-sourced field whose detected MRZ is unreadable."""
+        return not (mrz_unreadable and _field_source(result, name) == "mrz")
+
+    dob_raw = _field(result, "date_of_birth") if _usable("date_of_birth") else None
+    issue_raw = _field(result, "issue_date") if _usable("issue_date") else None
+    expiry_raw = _field(result, "expiry_date") if _usable("expiry_date") else None
+
+    dob = _parse_field(result, "date_of_birth") if _usable("date_of_birth") else None
+    issue = _parse_field(result, "issue_date") if _usable("issue_date") else None
+    expiry = _parse_field(result, "expiry_date", is_expiry=True) if _usable("expiry_date") else None
 
     # 1. Malformed / impossible date detection (per present field).
     for name, raw, parsed in (
@@ -154,6 +178,14 @@ def check_dates(result: ScreeningResponse, *, today: Optional[date] = None) -> L
         if raw is None:
             continue  # absence is a required-field concern, not a date one
         if parsed is None:
+            # A FAIL here is "present but unparseable", NOT "missing" — the field
+            # was read (the value is quoted below) but does not resolve to a real
+            # calendar date. Name the value and its source (MRZ vs printed text)
+            # so the finding can't be mistaken for an absent field: an MRZ-sourced
+            # failure is usually a garbled machine-read, not a bad printed date.
+            label = name.replace("_", " ")
+            source = _field_source(result, name)
+            source_label = "the MRZ" if source == "mrz" else "the printed text"
             findings.append(
                 RuleFinding.make(
                     rule_id=f"DATE_VALID_{name.upper()}",
@@ -161,8 +193,11 @@ def check_dates(result: ScreeningResponse, *, today: Optional[date] = None) -> L
                     status=RuleStatus.FAIL,
                     severity=RuleSeverity.HIGH,
                     field=name,
-                    message=f"Value in {name} is not a valid calendar date.",
-                    evidence={"value": raw},
+                    message=(
+                        f"The {label} value '{raw}' (read from {source_label}) is "
+                        f"present but is not a recognisable calendar date."
+                    ),
+                    evidence={"value": raw, "source": source},
                 )
             )
         else:

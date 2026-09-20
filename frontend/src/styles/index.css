@@ -29,13 +29,15 @@
   --neutral: #9c8067;
   --neutral-bg: rgba(156, 128, 103, 0.12);
 
-  --radius: 14px;
-  --radius-sm: 9px;
-  --shadow: 0 8px 26px rgba(120, 80, 30, 0.09);
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow: 0 10px 30px rgba(120, 80, 30, 0.10);
+  --shadow-lift: 0 18px 44px rgba(120, 80, 30, 0.14);
+  --accent-gradient: linear-gradient(135deg, #ff9145 0%, #ff6a13 52%, #e85700 100%);
   --font: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
     Roboto, Helvetica, Arial, sans-serif;
-  --font-display: "Space Grotesk", var(--font);
-  --mono: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  --font-display: "Sora", var(--font);
+  --mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
 }
 
 * {
@@ -51,11 +53,23 @@ body,
 
 body {
   background: var(--bg);
+  background-image: radial-gradient(
+      1200px 600px at 100% -10%,
+      rgba(255, 145, 69, 0.10),
+      transparent 60%
+    ),
+    radial-gradient(
+      900px 500px at -10% 0%,
+      rgba(255, 106, 19, 0.07),
+      transparent 55%
+    );
+  background-attachment: fixed;
   color: var(--text);
   font-family: var(--font);
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 h1,
@@ -63,9 +77,9 @@ h2,
 h3,
 h4 {
   margin: 0;
-  font-weight: 650;
+  font-weight: 700;
   font-family: var(--font-display);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 a {
@@ -89,11 +103,13 @@ code,
   display: flex;
   flex-direction: column;
   border-bottom: 1px solid var(--border);
-  background: var(--bg-panel);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
   position: sticky;
   top: 0;
   z-index: 10;
-  box-shadow: 0 1px 0 rgba(120, 80, 30, 0.04);
+  box-shadow: 0 6px 24px rgba(120, 80, 30, 0.06);
 }
 
 .app-header-top {
@@ -111,23 +127,42 @@ code,
 }
 
 .app-header .brand .logo {
-  width: 38px;
-  height: 38px;
-  border-radius: 11px;
-  background: linear-gradient(140deg, #ff9145, var(--accent) 55%, var(--accent-strong));
-  box-shadow: 0 4px 12px rgba(255, 106, 19, 0.32);
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  background: var(--accent-gradient);
+  box-shadow: 0 6px 16px rgba(255, 106, 19, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
   display: grid;
   place-items: center;
-  font-size: 19px;
+  font-size: 21px;
 }
 
 .app-header .brand h1 {
-  color: var(--text);
+  background: linear-gradient(120deg, var(--text) 20%, var(--accent-strong));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 
 .app-header .subtitle {
   color: var(--text-faint);
   font-size: 12px;
+  font-weight: 500;
+}
+
+.app-header-top > .subtitle {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-dim);
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 11px;
 }
 
 /* ---------- pipeline stage nav ---------- */
@@ -185,8 +220,10 @@ code,
 }
 
 .pstage .pname {
+  font-family: var(--font-display);
   font-size: 12.5px;
-  font-weight: 650;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   color: var(--text);
   white-space: nowrap;
 }
@@ -292,6 +329,12 @@ code,
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.panel:hover {
+  box-shadow: var(--shadow-lift);
 }
 
 .panel > .panel-head {
@@ -299,14 +342,28 @@ code,
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 12px 16px;
+  padding: 13px 16px 13px 18px;
   border-bottom: 1px solid var(--border);
-  background: var(--bg-elevated);
+  background: linear-gradient(180deg, var(--bg-elevated), var(--bg-panel));
+  position: relative;
+}
+
+.panel > .panel-head::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--accent-gradient);
 }
 
 .panel > .panel-head h3 {
-  font-size: 13px;
-  letter-spacing: 0.02em;
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-dim);
 }
@@ -321,6 +378,12 @@ code,
   border-left-width: 3px;
   border-radius: var(--radius-sm);
   padding: 12px 14px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(120, 80, 30, 0.08);
 }
 
 .card + .card {
@@ -388,14 +451,16 @@ code,
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 2px 9px;
+  padding: 3px 10px;
   border-radius: 999px;
-  font-size: 11.5px;
-  font-weight: 650;
-  letter-spacing: 0.02em;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
   background: var(--tone-bg, var(--muted-bg));
   color: var(--tone, var(--muted));
-  border: 1px solid color-mix(in srgb, var(--tone, var(--muted)) 40%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tone, var(--muted)) 38%, transparent);
   white-space: nowrap;
 }
 
@@ -435,13 +500,22 @@ code,
 }
 
 .btn.primary {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--accent-gradient);
+  border-color: transparent;
   color: #fff;
+  box-shadow: 0 6px 16px rgba(255, 106, 19, 0.30),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .btn.primary:hover:not(:disabled) {
-  background: var(--accent-strong);
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(255, 106, 19, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.btn.primary:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .btn:disabled {
@@ -506,8 +580,10 @@ code,
 }
 
 .risk-gauge .score {
-  font-size: 26px;
-  font-weight: 720;
+  font-family: var(--font-display);
+  font-size: 27px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
   color: var(--tone);
   line-height: 1;
 }
@@ -518,8 +594,10 @@ code,
 }
 
 .risk-meta .level {
-  font-size: 22px;
-  font-weight: 720;
+  font-family: var(--font-display);
+  font-size: 23px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   color: var(--tone);
 }
 
@@ -783,4 +861,224 @@ code,
   font-size: 12px;
   color: var(--text-dim);
   margin-bottom: 10px;
+}
+
+/* ---------- blockchain ledger view ---------- */
+.view-tabs {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.view-tab {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--text-dim);
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.view-tab:hover {
+  border-color: var(--accent);
+}
+
+.view-tab.active {
+  background: var(--accent-soft);
+  border-color: var(--accent-dim);
+  color: var(--accent-strong);
+}
+
+.ledger-view {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.btn-ghost {
+  background: var(--bg-panel);
+  font-weight: 500;
+}
+
+.chain-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.chain-stat {
+  flex: 1 1 90px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.chain-stat-wide {
+  flex: 2 1 200px;
+}
+
+.chain-stat-num {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.chain-stat-wide .chain-stat-num {
+  font-size: 14px;
+  word-break: break-all;
+}
+
+.chain-stat-label {
+  font-size: 11px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.chain-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.chain-blocks {
+  gap: 0;
+  position: relative;
+}
+
+/* Vertical connector between stacked blocks — the "chain". */
+.chain-blocks .block-card:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 26px;
+  width: 2px;
+  height: 16px;
+  margin-top: 0;
+  background: repeating-linear-gradient(
+    var(--accent-dim) 0 4px,
+    transparent 4px 8px
+  );
+}
+
+.block-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+  margin-bottom: 16px;
+}
+
+.block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.block-id {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.block-hash-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-dim);
+  font-size: 14px;
+}
+
+.block-height {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.block-kv dd.hash-strong {
+  color: var(--accent-strong);
+  font-weight: 600;
+}
+
+.tx-list {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border-strong);
+}
+
+.tx-row {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.tx-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+/* ---------- ledger demo additions ---------- */
+.how-list {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+.how-list strong {
+  color: var(--text);
+}
+
+.btn-danger {
+  border-color: var(--bad);
+  color: var(--bad);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--bad-bg);
+  border-color: var(--bad);
+}
+
+.pill-bad {
+  background: var(--bad-bg);
+  border-color: var(--bad);
+  color: var(--bad);
+  font-weight: 700;
+}
+
+.block-broken {
+  border-color: var(--bad);
+  box-shadow: 0 0 0 1px var(--bad), var(--shadow);
+}
+
+.block-broken .block-hash-badge {
+  background: var(--bad-bg);
+  border-color: var(--bad);
 }

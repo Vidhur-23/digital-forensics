@@ -15,4 +15,4 @@ __pycache__/
 screening.db
 evidence_store/
 
-/tests
+backend/tests
